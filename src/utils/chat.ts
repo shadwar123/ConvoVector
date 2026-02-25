@@ -14,7 +14,10 @@ export type ChatHandler = (question: string) => Promise<{
   answerCallBack?: (answerText: string) => Promise<void>;
 }>;
 
-// chat utility function that creates chat user interface on terminal
+// ---------------- TERMINAL CHAT IMPLEMENTATION (CLI) ----------------
+// This original implementation is kept for running the chatbot in the terminal.
+// It has been commented out because the project now uses a browser UI.
+/*
 export const chat = async (handler: ChatHandler) => {
   const rl = readlinePromises.createInterface({
     input: process.stdin,
@@ -83,3 +86,45 @@ export const chat = async (handler: ChatHandler) => {
     }
   }
 };
+*/
+
+// ---------------- BROWSER CHAT HELPER (HTTP / WEB UI) ----------------
+// This helper is used by the browser-based UI: it runs the ChatHandler once
+// and returns a plain JSON-friendly answer and sources.
+export const runChatOnce = async (
+  handler: ChatHandler,
+  question: string,
+): Promise<{ answer: string; sources?: string[] }> => {
+  const response = await handler(question);
+  const answerResult = await response.answer;
+
+  let answerText = "";
+
+  if (answerResult instanceof ReadableStream) {
+    let isFirstAnswerChunk = true;
+    for await (const chunk of answerResult as ReadableStream<any>) {
+      if (typeof chunk === "string") {
+        answerText += chunk;
+      } else if ((chunk as any).answer !== undefined) {
+        if (isFirstAnswerChunk) {
+          isFirstAnswerChunk = false;
+        }
+        answerText += (chunk as any).answer;
+      }
+    }
+  } else if (typeof answerResult === "string") {
+    answerText = answerResult.trimStart();
+  } else {
+    answerText = JSON.stringify(answerResult);
+  }
+
+  if (response.answerCallBack) {
+    await response.answerCallBack(answerText);
+  }
+
+  return {
+    answer: answerText,
+    sources: response.sources,
+  };
+};
+

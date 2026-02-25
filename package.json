@@ -20,7 +20,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node ./dist/app.js",
-    "dev": "ts-node --esm ./src/app.ts"
+    "dev": "node --loader ts-node/esm ./src/helloGenAI.ts",
+    "web:server": "node --loader ts-node/esm ./src/server.ts"
   },
   "devDependencies": {
     "@types/cli-progress": "^3.11.6",
