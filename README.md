@@ -1,44 +1,125 @@
-<b>This Git repository is part of a comprehensive Generative AI and LangChain.js course. [Click here for the complete course.](https://www.udemy.com/course/genai-langchain-for-javascript-developers/?referralCode=AA1D9ACDB07D8BB4E093) </b>
+## ConvoVector – RAG Chatbot with Chat History
 
-# Course Description
+ConvoVector is a Retrieval-Augmented Generation (RAG) based chatbot built with TypeScript and LangChain.  
+It supports **chat history**, so follow-up questions are contextualized using previous conversation turns.
 
-Welcome to the <b>Generative AI and Langchain Course for JavaScript Developers</b>! This course is tailored specifically for JavaScript professionals ready to advance their careers in the rapidly growing field of generative AI. While AI and machine learning have traditionally been dominated by Python, generative AI has opened up new possibilities, allowing JavaScript developers to build high-quality, LLM powered applications.
+The project currently has two main ways to interact with the chatbot:
 
-<b>Who Should Take This Course?</b> This course is designed for developers and architects with JavaScript and Node.js experience who are eager to build applications powered by large language models (LLMs). You’ll learn how to use JavaScript with LangChain to create generative AI applications, mastering core concepts like RAG (retrieval-augmented generation), embeddings, vector databases, and more. By the end, you’ll be equipped to develop robust generative AI applications.
+- **Terminal mode**: classic CLI chat loop.
+- **Browser mode**: simple, high‑quality web UI.
 
-<b>Course Journey</b>: We start with setting up the development environment, creating basic applications to explore key frameworks. Then, we’ll dive into advanced topics, building real-world applications with features like retrievable augmented generation and adding conversational layers with chat history.
+Depending on your git branch, you can focus on terminal or browser experience.
 
-<b>Key Topics Covered:</b>
+---
 
-- <b>LangChain with JavaScript/TypeScript</b>
-- <b>LLMs:</b> Working with top providers like AWS Bedrock, GPT, and Anthropic
+## Branches
 
-- <b>Prompts & PromptTemplates
-- Output Parsers
-- Chains</b>: Including legacy chains and LCEL
-- <b>LLM Parameters: Temp, Top-p, Top-k
-- LangSmith
-- Embeddings & VectorStores</b> (e.g., Pinecone)
-- <b>RAG</b> (Retrieval Augmentation Generation)
-- <b>Tools</b>: Web crawlers, document loaders, text splitters
-- <b>Memory & Chat History</b>
+- **`main`**:  
+  Focuses on the original **terminal-based** RAG chatbot.
 
-Throughout the course, you’ll engage in hands-on exercises and build real-world projects to reinforce each concept, ensuring a solid foundation in generative AI with JavaScript. By course completion, you’ll be proficient in using LangChain to develop versatile, high-performance LLM applications.
+- **`browserBranch`** (recommended for web work):  
+  Adds:
+  - HTTP server (`src/server.ts`) exposing a `/chat` endpoint.
+  - Browser UI under `src/public/` (`index.html`, `styles.css`, `main.js`).
+  - Browser‑oriented `ChatHandler` implementation that returns JSON‑friendly answers.
 
-<b>What’s Included</b>? This course is also a community experience. With lifetime access, you’ll receive:
+You can switch branches with:
 
-- GitHub repositories with complete course code
+```bash
+git checkout main          # terminal-only experience
+git checkout browserBranch # browser + terminal-compatible logic
+```
 
-- Access to an exclusive Discord community for support and discussion on GenAI topics
+---
 
-- Free updates and continuous improvements at no extra cost
+## What is RAG (Retrieval-Augmented Generation)?
 
-<b>Disclaimers</b>:
+**Retrieval-Augmented Generation (RAG)** is a pattern where an LLM:
 
-- This is not a beginner course; software engineering experience and some experience in JavaScript are assumed.
+1. **Retrieves relevant documents** from a vector store using **embeddings**.
+2. **Augments the prompt** with those documents as context.
+3. **Generates an answer** grounded in that retrieved context.
 
-- We will be using the VSCode IDE (though any editor is welcome).
+This project:
 
-- Some LLM services may require payment, but we’ll utilize free options whenever possible.
+- Uses embeddings to map text into a high‑dimensional vector space.
+- Stores those vectors in a vector database.
+- At query time, finds semantically similar chunks and passes them to the model.
+- Optionally returns **sources** so you can see where an answer came from.
 
-- The views and opinions expressed here are my own and do not represent those of my employer.
+---
+
+## Project Structure (high level)
+
+- `src/utils/chat.ts`  
+  - Defines the shared `ChatHandler` type.  
+  - Contains:
+    - **Commented terminal chat loop** (`chat(...)`) for CLI usage.  
+    - **`runChatOnce` helper** used by the browser server to execute a single chat turn and return `{ answer, sources }`.
+
+- `src/ragGoogle/`  
+  RAG implementation using Gemini / LangChain, including:
+  - `ragWithChatHistory.ts` – main RAG pipeline with chat history and a browser‑friendly `chatHandler`.
+  - `retriever.ts`, `embeddings.ts`, `crawlDocuments.ts`, etc. – document loading, splitting, embeddings, and retriever setup.
+
+- `src/server.ts` (browser branch)  
+  Minimal HTTP server that:
+  - Accepts `POST /chat` with `{ question }`.
+  - Calls `chatHandler` + `runChatOnce`.
+  - Returns a JSON answer and optional sources.
+
+- `src/public/` (browser branch)  
+  - `index.html` – simple chat UI shell.  
+  - `styles.css` – dark, modern chat layout.  
+  - `main.js` – calls `/chat` and renders messages.
+
+---
+
+## Running the Terminal Chat (main branch)
+
+> Exact entrypoint may vary depending on which RAG example you want (with/without history, Google vs OpenAI).  
+> The typical pattern is:
+
+```bash
+git checkout main
+npm install
+
+# Example (adjust to your desired script/file):
+npx ts-node src/ragGoogle/ragWithChatHistory.ts
+```
+
+This uses the **commented terminal chat loop** in `src/utils/chat.ts` together with a `ChatHandler` implementation in the chosen RAG file.
+
+---
+
+## Running the Browser Chat (browserBranch)
+
+```bash
+git checkout browserBranch
+npm install
+
+# Start the RAG HTTP server
+npm run web:server
+```
+
+Then open `src/public/index.html` in a browser (or serve it with a static file server).  
+The UI will send `POST` requests to `http://localhost:3000/chat` and display:
+
+- User messages
+- AI answers
+- Optional **sources** from the RAG retriever
+
+---
+
+## Environment Variables
+
+You will need an `.env` file with the required keys for your chosen LLM and vector store, for example:
+
+```bash
+GOOGLE_API_KEY=...
+OPENAI_API_KEY=...
+PINECONE_API_KEY=...
+```
+
+Make sure these values are set before running either the terminal or browser chat.
+
